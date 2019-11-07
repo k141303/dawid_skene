@@ -27,7 +27,7 @@ and  individual error rates for each observer, using Expectation Maximization
 References:
 ( Dawid and Skene (1979). Maximum Likelihood Estimation of Observer
 Error-Rates Using the EM Algorithm. Journal of the Royal Statistical Society.
-Series C (Applied Statistics), Vol. 28, No. 1, pp. 20-28. 
+Series C (Applied Statistics), Vol. 28, No. 1, pp. 20-28.
 """
 
 import numpy as np
@@ -51,14 +51,14 @@ Input:
         {patients: {observers: [labels]}}
     tol: tolerance required for convergence of EM
     max_iter: maximum number of iterations of EM
-""" 
+"""
 def run(responses, tol=0.00001, max_iter=100, init='average'):
     # convert responses to counts
     (patients, observers, classes, counts) = responses_to_counts(responses)
-    print "num Patients:", len(patients)
-    print "Observers:", observers
-    print "Classes:", classes
-    
+    print("num Patients:", len(patients))
+    print("Observers:", observers)
+    print("Classes:", classes)
+
     # initialize
     iter = 0
     converged = False
@@ -66,55 +66,55 @@ def run(responses, tol=0.00001, max_iter=100, init='average'):
     old_error_rates = None
 
     patient_classes = initialize(counts)
-    
-    print "Iter\tlog-likelihood\tdelta-CM\tdelta-ER"    
-    
+
+    print("Iter\tlog-likelihood\tdelta-CM\tdelta-ER")
+
     # while not converged do:
-    while not converged:     
+    while not converged:
         iter += 1
-        
+
         # M-step
-        (class_marginals, error_rates) = m_step(counts, patient_classes)        
- 
+        (class_marginals, error_rates) = m_step(counts, patient_classes)
+
         # E-setp
-        patient_classes = e_step(counts, class_marginals, error_rates)  
-        
+        patient_classes = e_step(counts, class_marginals, error_rates)
+
         # check likelihood
         log_L = calc_likelihood(counts, class_marginals, error_rates)
-        
+
         # check for convergence
         if old_class_marginals is not None:
             class_marginals_diff = np.sum(np.abs(class_marginals - old_class_marginals))
             error_rates_diff = np.sum(np.abs(error_rates - old_error_rates))
-            print iter ,'\t', log_L, '\t%.6f\t%.6f' % (class_marginals_diff, error_rates_diff)            
+            print(iter ,'\t', log_L, '\t%.6f\t%.6f' % (class_marginals_diff, error_rates_diff))
             if (class_marginals_diff < tol and error_rates_diff < tol) or iter > max_iter:
                 converged = True
         else:
-            print iter ,'\t', log_L
-    
+            print(iter ,'\t', log_L)
+
         # update current values
         old_class_marginals = class_marginals
         old_error_rates = error_rates
-                
+
     # Print final results
     np.set_printoptions(precision=2, suppress=True)
-    print "Class marginals"
-    print class_marginals
-    print "Error rates"
-    print error_rates
+    print("Class marginals")
+    print(class_marginals)
+    print("Error rates")
+    print(error_rates)
 
-    print "Incidence-of-error rates"
+    print("Incidence-of-error rates")
     [nPatients, nObservers, nClasses] = np.shape(counts)
     for k in range(nObservers):
-        print class_marginals * error_rates[k,:,:]
+        print(class_marginals * error_rates[k,:,:])
 
-    np.set_printoptions(precision=4, suppress=True)    
-    print "Patient classes"
+    np.set_printoptions(precision=4, suppress=True)
+    print("Patient classes")
     for i in range(nPatients):
-        print patients[i], patient_classes[i,:] 
-        
-    #return (patients, observers, classes, counts, class_marginals, error_rates, patient_classes) 
- 
+        print(patients[i], patient_classes[i,:])
+
+    #return (patients, observers, classes, counts, class_marginals, error_rates, patient_classes)
+
 """
 Function: responses_to_counts()
     Convert a matrix of annotations to count data
@@ -125,12 +125,11 @@ Return:
     observers: list of observers
     classes: list of possible patient classes
     counts: 3d array of counts: [patients x observers x classes]
-""" 
+"""
 def responses_to_counts(responses):
-    patients = responses.keys()
-    patients.sort()
+    patients = sorted(responses.keys())
     nPatients = len(patients)
-        
+
     # determine the observers and classes
     observers = set()
     classes = set()
@@ -141,18 +140,18 @@ def responses_to_counts(responses):
                 observers.add(k)
             ik_responses = responses[i][k]
             classes.update(ik_responses)
-    
+
     classes = list(classes)
     classes.sort()
     nClasses = len(classes)
-        
+
     observers = list(observers)
     observers.sort()
     nObservers = len(observers)
-            
+
     # create a 3d array to hold counts
     counts = np.zeros([nPatients, nObservers, nClasses])
-    
+
     # convert responses to counts
     for patient in patients:
         i = patients.index(patient)
@@ -161,8 +160,8 @@ def responses_to_counts(responses):
             for response in responses[patient][observer]:
                 j = classes.index(response)
                 counts[i,k,j] += 1
-        
-    
+
+
     return (patients, observers, classes, counts)
 
 
@@ -171,12 +170,12 @@ Function: initialize()
     Get initial estimates for the true patient classes using counts
     see equation 3.1 in Dawid-Skene (1979)
 Input:
-    counts: counts of the number of times each response was received 
-        by each observer from each patient: [patients x observers x classes] 
+    counts: counts of the number of times each response was received
+        by each observer from each patient: [patients x observers x classes]
 Returns:
     patient_classes: matrix of estimates of true patient classes:
         [patients x responses]
-"""  
+"""
 def initialize(counts):
     [nPatients, nObservers, nClasses] = np.shape(counts)
     # sum over observers
@@ -186,7 +185,7 @@ def initialize(counts):
     # for each patient, take the average number of observations in each class
     for p in range(nPatients):
         patient_classes[p,:] = response_sums[p,:] / np.sum(response_sums[p,:],dtype=float)
-        
+
     return patient_classes
 
 
@@ -195,7 +194,7 @@ Function: m_step()
     Get estimates for the prior class probabilities (p_j) and the error
     rates (pi_jkl) using MLE with current estimates of true patient classes
     See equations 2.3 and 2.4 in Dawid-Skene (1979)
-Input: 
+Input:
     counts: Array of how many times each response was received
         by each observer from each patient
     patient_classes: Matrix of current assignments of patients to classes
@@ -206,25 +205,25 @@ Returns:
 """
 def m_step(counts, patient_classes):
     [nPatients, nObservers, nClasses] = np.shape(counts)
-    
+
     # compute class marginals
     class_marginals = np.sum(patient_classes,0)/float(nPatients)
-    
-    # compute error rates 
+
+    # compute error rates
     error_rates = np.zeros([nObservers, nClasses, nClasses])
     for k in range(nObservers):
         for j in range(nClasses):
-            for l in range(nClasses): 
+            for l in range(nClasses):
                 error_rates[k, j, l] = np.dot(patient_classes[:,j], counts[:,k,l])
             # normalize by summing over all observation classes
             sum_over_responses = np.sum(error_rates[k,j,:])
             if sum_over_responses > 0:
-                error_rates[k,j,:] = error_rates[k,j,:]/float(sum_over_responses)  
+                error_rates[k,j,:] = error_rates[k,j,:]/float(sum_over_responses)
 
     return (class_marginals, error_rates)
 
 
-""" 
+"""
 Function: e_step()
     Determine the probability of each patient belonging to each class,
     given current ML estimates of the parameters from the M-step
@@ -233,28 +232,28 @@ Inputs:
     counts: Array of how many times each response was received
         by each observer from each patient
     class_marginals: probability of a random patient belonging to each class
-    error_rates: probability of observer k assigning a patient in class j 
+    error_rates: probability of observer k assigning a patient in class j
         to class l [observers, classes, classes]
 Returns:
     patient_classes: Soft assignments of patients to classes
         [patients x classes]
-"""      
+"""
 def e_step(counts, class_marginals, error_rates):
     [nPatients, nObservers, nClasses] = np.shape(counts)
-    
-    patient_classes = np.zeros([nPatients, nClasses])    
-    
+
+    patient_classes = np.zeros([nPatients, nClasses])
+
     for i in range(nPatients):
         for j in range(nClasses):
             estimate = class_marginals[j]
             estimate *= np.prod(np.power(error_rates[:,j,:], counts[i,:,:]))
-            
+
             patient_classes[i,j] = estimate
         # normalize error rates by dividing by the sum over all observation classes
         patient_sum = np.sum(patient_classes[i,:])
         if patient_sum > 0:
             patient_classes[i,:] = patient_classes[i,:]/float(patient_sum)
-    
+
     return patient_classes
 
 
@@ -267,39 +266,39 @@ Inputs:
     counts: Array of how many times each response was received
         by each observer from each patient
     class_marginals: probability of a random patient belonging to each class
-    error_rates: probability of observer k assigning a patient in class j 
+    error_rates: probability of observer k assigning a patient in class j
         to class l [observers, classes, classes]
 Returns:
     Likelihood given current parameter estimates
-"""  
+"""
 def calc_likelihood(counts, class_marginals, error_rates):
     [nPatients, nObservers, nClasses] = np.shape(counts)
     log_L = 0.0
-    
+
     for i in range(nPatients):
         patient_likelihood = 0.0
         for j in range(nClasses):
-        
+
             class_prior = class_marginals[j]
-            patient_class_likelihood = np.prod(np.power(error_rates[:,j,:], counts[i,:,:]))  
+            patient_class_likelihood = np.prod(np.power(error_rates[:,j,:], counts[i,:,:]))
             patient_class_posterior = class_prior * patient_class_likelihood
             patient_likelihood += patient_class_posterior
-                              
+
         temp = log_L + np.log(patient_likelihood)
-        
+
         if np.isnan(temp) or np.isinf(temp):
-            print i, log_L, np.log(patient_likelihood), temp
+            print(i, log_L, np.log(patient_likelihood), temp)
             sys.exit()
 
-        log_L = temp        
-        
+        log_L = temp
+
     return log_L
-    
+
 
 """
 Function: generate_sample_data()
     Generate the data from Table 1 in Dawid-Skene (1979) in the proper format
-"""  
+"""
 def generate_sample_data():
     responses = {
                  1: {1:[1,1,1], 2:[1], 3:[1], 4:[1], 5:[1]},
@@ -357,56 +356,56 @@ Function: random_initialization()
     Similar to initialize() above, except choose one initial class for each
     patient, weighted in proportion to the counts
 Input:
-    counts: counts of the number of times each response was received 
-        by each observer from each patient: [patients x observers x classes] 
+    counts: counts of the number of times each response was received
+        by each observer from each patient: [patients x observers x classes]
 Returns:
     patient_classes: matrix of estimates of true patient classes:
         [patients x responses]
-"""  
+"""
 def random_initialization(counts):
     [nPatients, nObservers, nClasses] = np.shape(counts)
-    
+
     response_sums = np.sum(counts,1)
-    
+
     # create an empty array
     patient_classes = np.zeros([nPatients, nClasses])
-    
+
     # for each patient, choose a random initial class, weighted in proportion
     # to the counts from all observers
     for p in range(nPatients):
         average = response_sums[p,:] / np.sum(response_sums[p,:],dtype=float)
         patient_classes[p,np.random.choice(np.arange(nClasses), p=average)] = 1
-        
+
     return patient_classes
 
 
 """
 Function: majority_voting()
     Alternative initialization # 2
-    An alternative way to initialize assignment of patients to classes 
+    An alternative way to initialize assignment of patients to classes
     i.e Get initial estimates for the true patient classes using majority voting
     This is not in the original paper, but could be considered
 Input:
-    counts: Counts of the number of times each response was received 
-        by each observer from each patient: [patients x observers x classes] 
+    counts: Counts of the number of times each response was received
+        by each observer from each patient: [patients x observers x classes]
 Returns:
     patient_classes: matrix of initial estimates of true patient classes:
         [patients x responses]
-"""  
+"""
 def majority_voting(counts):
     [nPatients, nObservers, nClasses] = np.shape(counts)
     # sum over observers
     response_sums = np.sum(counts,1)
-    
+
     # create an empty array
     patient_classes = np.zeros([nPatients, nClasses])
-    
-    # take the most frequent class for each patient 
-    for p in range(nPatients):        
+
+    # take the most frequent class for each patient
+    for p in range(nPatients):
         indices = np.argwhere(response_sums[p,:] == np.max(response_sums[p,:]))
-        # in the case of ties, take the lowest valued label (could be randomized)        
+        # in the case of ties, take the lowest valued label (could be randomized)
         patient_classes[p, np.min(indices)] = 1
-        
+
     return patient_classes
 
 
